@@ -3,10 +3,10 @@ package pf.Database;
 import java.sql.*;
 
 public class DatabaseManager {
-    // Cập nhật URL kết nối cho PostgreSQL
-    private static final String URL = "jdbc:postgresql://34.67.92.57:5432/pfmsdemo";
-    private static final String USER = "admin_psql";
-    private static final String PASSWORD = "adminpsql";
+    // ✅ Dùng MySQL JDBC URL
+    private static final String URL = "jdbc:mysql://localhost:3306/ChuongNguyen";
+    private static final String USER = "root";
+    private static final String PASSWORD = "titansword";
 
     private static Connection connection;
     private static Statement statement;
@@ -17,12 +17,16 @@ public class DatabaseManager {
 
     public static void connect() {
         try {
-            // Đăng ký driver PostgreSQL
-            Class.forName("org.postgresql.Driver");
+            // ✅ Dùng đúng MySQL driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
             connection = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("Connected to the PostgreSQL database");
+            System.out.println("✅ Connected to the MySQL database");
 
-        } catch (ClassNotFoundException | SQLException e) {
+        } catch (ClassNotFoundException e) {
+            System.err.println("❌ MySQL JDBC Driver not found");
+            e.printStackTrace();
+        } catch (SQLException e) {
+            System.err.println("❌ Failed to connect to MySQL. Check credentials or DB status.");
             e.printStackTrace();
         }
     }
@@ -30,6 +34,10 @@ public class DatabaseManager {
     public static ResultSet executeQuery(String query) {
         ResultSet resultSet = null;
         try {
+            if (connection == null) {
+                System.err.println("❗ No database connection. Did you forget to call connect()?");
+                return null;
+            }
             statement = connection.createStatement();
             resultSet = statement.executeQuery(query);
         } catch (SQLException e) {

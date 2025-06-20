@@ -10,57 +10,72 @@ import pf.Database.DatabaseManager;
 import pf.Database.UserSession;
 import javax.swing.JFrame;
 import org.knowm.xchart.SwingWrapper;
+// 1) import mới
+import java.util.LinkedHashMap;     // thêm dòng này
 
 public class IncomeExpenseChart {
 
     // Array of month names in chronological order
     private static final String[] MONTHS = {
-            "January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
-            "November", "December"
+        "January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+        "November", "December"
     };
 
     public static Map<String, Integer> getMonthlyIncome() throws SQLException {
-        Map<String, Integer> monthlyIncome = new TreeMap<>();
+        Map<String, Integer> monthlyIncome = new LinkedHashMap<>();
+
         DatabaseManager.connect();
-        String query = "SELECT to_char(income_date, 'Month') AS month, SUM(amount) AS income " +
-                "FROM income " +
-                "WHERE user_id = ? " +
-                "GROUP BY month";
-        try (PreparedStatement pstmt = DatabaseManager.getConnection().prepareStatement(query)) {
-            pstmt.setInt(1, UserSession.userId);
-            ResultSet rs = pstmt.executeQuery();
+        String query
+                = "SELECT MONTH(income_date)          AS m_num, "
+                + "       DATE_FORMAT(income_date,'%M') AS m_name, "
+                + "       SUM(amount)                  AS income "
+                + "FROM   income "
+                + "WHERE  user_id = ? "
+                + "GROUP  BY m_num, m_name "
+                + "ORDER  BY m_num";
+
+        try (PreparedStatement ps = DatabaseManager.getConnection().prepareStatement(query)) {
+            ps.setInt(1, UserSession.userId);
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                String month = rs.getString("month");
-                int income = rs.getInt("income");
-                monthlyIncome.put(month, income);
+                String month = rs.getString("m_name").trim(); // ví dụ "January"
+                int inc = rs.getInt("income");
+                monthlyIncome.put(month, inc);
             }
         }
-        // Ensure all months are in the map with 0 income if no records found
-        for (String month : MONTHS) {
-            monthlyIncome.putIfAbsent(month, 0);
+
+        // bảo đảm đủ 12 tháng
+        for (String m : MONTHS) {
+            monthlyIncome.putIfAbsent(m, 0);
         }
         return monthlyIncome;
     }
 
     public static Map<String, Integer> getMonthlyExpenses() throws SQLException {
-        Map<String, Integer> monthlyExpenses = new TreeMap<>();
+        Map<String, Integer> monthlyExpenses = new LinkedHashMap<>();
+
         DatabaseManager.connect();
-        String query = "SELECT to_char(expense_date, 'Month') AS month, SUM(amount) AS expense " +
-                "FROM expense " +
-                "WHERE user_id = ? " +
-                "GROUP BY month";
-        try (PreparedStatement pstmt = DatabaseManager.getConnection().prepareStatement(query)) {
-            pstmt.setInt(1, UserSession.userId);
-            ResultSet rs = pstmt.executeQuery();
+        String query
+                = "SELECT MONTH(expense_date)            AS m_num, "
+                + "       DATE_FORMAT(expense_date,'%M') AS m_name, "
+                + "       SUM(amount)                    AS expense "
+                + "FROM   expense "
+                + "WHERE  user_id = ? "
+                + "GROUP  BY m_num, m_name "
+                + "ORDER  BY m_num";
+
+        try (PreparedStatement ps = DatabaseManager.getConnection().prepareStatement(query)) {
+            ps.setInt(1, UserSession.userId);
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                String month = rs.getString("month");
-                int expense = rs.getInt("expense");
-                monthlyExpenses.put(month, expense);
+                String month = rs.getString("m_name").trim();
+                int exp = rs.getInt("expense");
+                monthlyExpenses.put(month, exp);
             }
         }
-        // Ensure all months are in the map with 0 expenses if no records found
-        for (String month : MONTHS) {
-            monthlyExpenses.putIfAbsent(month, 0);
+
+        for (String m : MONTHS) {
+            monthlyExpenses.putIfAbsent(m, 0);
         }
         return monthlyExpenses;
     }
